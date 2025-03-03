@@ -1,0 +1,46 @@
+use PhpOffice\PhpSpreadsheet\IOFactory;
+
+function get_data_from_xlsx_sheet($file_path, $sheet_name) {
+    try {
+        $spreadsheet = IOFactory::load($file_path);
+        $sheet = $spreadsheet->getSheetByName($sheet_name);
+
+        if (!$sheet) {
+            return "Вкладка з назвою '$sheet_name' не знайдена.";
+        }
+
+        return $sheet->toArray();
+    } catch (\Exception $e) {
+        return "Помилка: " . $e->getMessage();
+    }
+}
+
+
+$file_path = 'D:\\server6\\OSPanel\\home\\parser\\example.ods';
+
+for ($i = 92; $i <= 92; $i++) {
+    $sheet_name = 'Table ' . $i;
+
+    $data = get_data_from_xlsx_sheet($file_path, $sheet_name);
+
+    if (!is_array($data)) {
+        echo "Помилка: Вкладка $sheet_name не знайдена або не містить даних.\n";
+        continue;
+    }
+
+    $numberModel = [];
+    foreach ($data as $row) {
+        if (!empty($row[0])) {
+            $key = $row[0];
+            $modelTypes = isset($row[3]) ? $row[3] : null;
+            if (!empty($modelTypes) && $key !== 'new') {
+                $numberModel[$key] = [
+                    'modelTypes' => $modelTypes
+                ];
+            }
+        }
+    }
+
+    $json = json_encode($numberModel, JSON_PRETTY_PRINT);
+    file_put_contents('test_Categories_' . $i . '.txt', $json);
+}
