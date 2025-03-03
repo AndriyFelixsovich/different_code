@@ -1,0 +1,188 @@
+require_once __DIR__ . '/phpQuery-onefile.php';
+
+function parser($url)
+{
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_HEADER, false);
+    $result = curl_exec ($ch);
+    curl_close($ch);
+
+    return $result;
+}
+
+$result = parser('example');
+
+$pq = phpQuery::newDocument($result);
+
+$data = [];
+
+$listDataTr = $pq->find('table tbody tr');
+
+foreach ($listDataTr as $dataTr) {
+    $data[] = [
+        'image'         => pq($dataTr)->find('td.mat-column-image img')->attr('src'),
+        'name'          => pq($dataTr)->find('td.mat-column-name')->text(),
+        'manufac'       => pq($dataTr)->find('td.mat-column-car-brand')->text(),
+        'origin-number' => pq($dataTr)->find('td.mat-column-original-number')->text(),
+        'description'   => pq($dataTr)->find('td.mat-column-description')->text(),
+    ];
+}
+
+$jsonData = json_encode($data);
+file_put_contents('BYD.txt', $jsonData);
+
+
+
+//СКАЧУЄМО ФОТО
+        //Декодуємо
+$getJson = file_get_contents(__DIR__ . '\-json' . '\.txt');
+$decodeJson = json_decode($getJson, true);
+function downloadImage($url, $savePath) {
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    $data = curl_exec($ch);
+    curl_close($ch);
+
+    file_put_contents($savePath, $data);
+}
+
+foreach ($decodeJson as $index => $item) {
+    if (!empty($item['image'])) {
+        $imageUrl = $item['image'];
+        $directory = __DIR__ . "/BYD-foto/";
+        // Створюємо папку якщо її немає
+        if (!is_dir($directory)) {
+            mkdir($directory, 0777, true);
+        }
+        $imagePath = __DIR__ . "/-foto/".trim($item['name']).".jpg";
+
+        downloadImage($imageUrl, $imagePath);
+    }
+}
+
+//Парсемо з тайм-аутом
+function parserTimeOut($url)
+{
+    $ch = curl_init($url);
+
+    curl_setopt($ch, CURLOPT_TIMEOUT, 300);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_HEADER, false);
+    $result = curl_exec ($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    return $result;
+}
+
+for($i = 1; $i <= 14; $i++) {
+    $params = [
+        'filters' => '',
+        'sortKey' => 'created_at',
+        'sortDirection' => 'asc',
+        'pageIndex' => $i,
+        'pageSize' => 20
+    ];
+    //Декодуємо example (%3D без перетворення у %253D)
+    $params['filters'] = urldecode($params['filters']);
+
+    $url = "https://www.?" . http_build_query($params);
+    $result = parserTimeOut($url);
+    $pq = phpQuery::newDocument($result);
+    $data = [];
+    $listDataTr = $pq->find('table tbody tr');
+    foreach ($listDataTr as $dataTr) {
+        $data[] = [
+            'image'         => pq($dataTr)->find('td.mat-column-image img')->attr('src'),
+            'name'          => pq($dataTr)->find('td.mat-column-name')->text(),
+            'manufac'       => pq($dataTr)->find('td.mat-column-car-brand')->text(),
+            'origin-number' => pq($dataTr)->find('td.mat-column-original-number')->text(),
+            'description'   => pq($dataTr)->find('td.mat-column-description')->text(),
+        ];
+    }
+    $jsonData = json_encode($data);
+    file_put_contents('example_' . $i . '.txt', $jsonData);
+
+    echo "Сторінка: " . $i . " - " . date("H:i:s"). "<br>";
+}
+
+
+//СКАЧУЄМО ФОТО
+
+set_time_limit(3600);
+function downloadImage($url, $savePath) {
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    $data = curl_exec($ch);
+    curl_close($ch);
+
+    file_put_contents($savePath, $data);
+}
+
+for ($i = 1; $i <= 5; $i++) {
+    $getJson = file_get_contents(__DIR__ . '/-json' . '/_' .$i. '.txt');
+
+    $decodeJson = json_decode($getJson, true);
+
+    foreach ($decodeJson as $index => $item) {
+        if (!empty($item['image'])) {
+            $imageUrl = $item['image'];
+            $directory = __DIR__ . "/-foto/";
+            // Створюємо папку якщо її немає
+            if (!is_dir($directory)) {
+                mkdir($directory, 0777, true);
+            }
+            $imagePath = __DIR__ ."/-foto/".trim($item['name']).".jpg";
+
+            downloadImage($imageUrl, $imagePath);
+        }
+    }
+    echo "Сторінка скачування: " . $i . " - " . date("H:i:s"). "<br>";
+    sleep(60);
+}
+
+
+//ВИДАЛЯЄМО ПРОБІЛИ З НАЗВИ
+
+$folder = __DIR__ . "/-foto";
+
+// Перевіряємо, чи існує папка
+if (!is_dir($folder)) {
+    die("Папка '$folder' не існує.");
+}
+
+// Отримуємо список файлів у папці
+$files = scandir($folder);
+
+// Перебираємо файли
+foreach ($files as $file) {
+    // Пропускаємо поточну директорію та батьківську директорію
+    if ($file == "." || $file == "..") {
+        continue;
+    }
+
+    $filePath = $folder . "/" . $file;
+
+    // Перевіряємо, чи це файл (не директорія)
+    if (is_file($filePath)) {
+        // Видаляємо пробіли з назви файлу
+        $newFileName = str_replace(" ", "", $file);
+        $newFilePath = $folder . "/" . $newFileName;
+
+        // Перейменовуємо файл
+        if (rename($filePath, $newFilePath)) {
+            echo "Файл '$file' перейменовано на '$newFileName'<br>";
+        } else {
+            echo "Помилка перейменування файлу '$file'<br>";
+        }
+    }
+}
+
+echo "Готово!";
