@@ -1,0 +1,54 @@
+Google Cloud Translation API дозволяє програмно перекладати тексти.
+Кроки:
+  1.Зареєструйся на Google Cloud.
+  2.Створи проект та ввімкни Cloud Translation API.
+  3.Отримай API Key.
+  4.Встанови бібліотеку: composer require google/cloud-translate
+Налаштувати V3 з сервісним акаунтом (трохи складніше, але потужніше)
+  Створення сервісного акаунта та ключа
+  1.Зайди на https://console.cloud.google.com/
+  2.Обери свій проєкт (або створи новий)
+  3.Перейди в IAM & Admin → Service Accounts
+  4.Натисни "Create Service Account"
+  5.Name: example-translator-service
+  6.Role: обери Project → Editor або Cloud Translation API User
+  7.Створи та завантаж JSON-файл ключа (*.json)
+  8.Поклади цей файл у storage/app/google-credentials.json (або інше зручне місце)
+Як вирішити: надати дозвіл
+  1: Перейди в Google Cloud Console
+    https://console.cloud.google.com/iam-admin/iam
+  2: Знайди сервісний акаунт
+    Ім’я приблизно таке:
+    translator-service@test-1671786179100.iam.gserviceaccount.com
+  3: Натисни "Edit" (іконка олівця ✏️)
+  4: Додай роль:
+    Role: Cloud Translation API User
+
+
+use Google\Cloud\Translate\V3\Client\TranslationServiceClient;
+use Google\Cloud\Translate\V3\TranslateTextRequest;
+
+putenv('GOOGLE_APPLICATION_CREDENTIALS=D:\\server6\\OSPanel\\home\\follas\\storage\\app\\test.json');
+
+		$client = new TranslationServiceClient();
+		$projectId = 'test';
+		$location = 'global';
+		$formattedParent = $client->locationName($projectId, $location);
+
+		$text = 'HOLE PLUG PA 6 FG 30 BLACK';
+
+		// ✅ Створюємо запит TranslateTextRequest
+		$request = (new TranslateTextRequest())
+			->setContents([$text])
+			->setTargetLanguageCode('uk')
+			->setSourceLanguageCode('en')
+			->setParent($formattedParent)
+			->setModel("projects/test/locations/global/models/general/nmt");
+
+		// ✅ Надсилаємо запит
+		$response = $client->translateText($request);
+
+		// ✅ Виводимо результат
+		foreach ($response->getTranslations() as $translation) {
+			echo $translation->getTranslatedText();
+		}
